@@ -38,9 +38,13 @@ Hv_beagleSequencer *gHeavyContext;
 #define NUM_VOICES 16
 #define NUM_SYNTHS 5
 #define CLOCK_BUFFER_SIZE 1024
-#define MASTER 0
-#define SLAVE 1
+#define MASTER 1
+#define SLAVE 0
 
+int gClockOutPin = 6;
+int gClockInPin = 5;
+
+int gEventTriggeredByClock = 0;
 
 /* Drum samples are pre-loaded in these buffers. Length of each
  * buffer is given in gDrumSampleBufferLengths.
@@ -108,7 +112,7 @@ extern int gIsPlaying;
 int gPlaysBackwards = 0;
 
 
-int gClockBuffer[CLOCK_BUFFER_SIZE];
+float gClockBuffer[CLOCK_BUFFER_SIZE];
 int gClockReadPointer = 0;
 int gMasterClock = 0;
 int gClockReset = 0;
@@ -118,6 +122,9 @@ int gClockInputReadPointer = 0;
 float beatClockvalue[4] {0,0.25,0.5,0.75};
 
 int gLastClock = 0;
+
+float gAnalogOut = 0;
+
 
 // initialise_render() is called once before the audio rendering starts.
 // Use it to perform any initialisation and allocation which is dependent
@@ -228,8 +235,7 @@ void render(int numMatrixFrames, int numAudioFrames, float *audioIn, float *audi
 	for(int m=0;m<numMatrixFrames;m++)	{
 
 		#if SLAVE
-			//rt_printf("clock reading: %f\n",matrixIn[m*8+4]);
-			float clockValue = matrixIn[m*8+4];
+			float clockValue = matrixIn[m*8+gClockInPin];
 //			if(m==0)
 //				rt_printf("%f\n",clockValue);
 			if(++gClockInputReadPointer>=CLOCK_BUFFER_SIZE)
@@ -308,24 +314,33 @@ void render(int numMatrixFrames, int numAudioFrames, float *audioIn, float *audi
 				// wrap gClockReadPointer
 				if(gClockReadPointer >= CLOCK_BUFFER_SIZE)
 					gClockReadPointer = 0;
-				float analogOut = 0;
-				switch(gCurrentIndexInPattern%4)	{
-				case 0:
-					analogOut = 0.2;
-					break;
-				case 1:
-					analogOut = 0.4;
-					break;
-				case 2:
-					analogOut = 0.6;
-					break;
-				case 3:
-					analogOut = 0.8;
-					break;
-				default:
-					break;
-				}
-				gClockBuffer[gClockReadPointer] = gMasterClock;
+				//float analogOut = 0;
+
+				gAnalogOut = (float)gSampleCounter / (float)gEventIntervalSamples;
+
+				gAnalogOut = fmod(gAnalogOut + 0.5,1);
+
+				//rt_printf("%f\n",gAnalogOut);
+
+//				switch(gCurrentIndexInPattern%4)	{
+//				case 0:
+//					gAnalogOut = 0.2;
+//					break;
+//				case 1:
+//					gAnalogOut = 0.4;
+//					break;
+//				case 2:
+//					gAnalogOut = 0.6;
+//					break;
+//				case 3:
+//					gAnalogOut = 0.8;
+//					break;
+//				default:
+//					break;
+//				}
+//				if(n==0)
+//					rt_printf("%f\n",analogOut);
+				gClockBuffer[gClockReadPointer] = gAnalogOut;//gMasterClock;
 
 			}
 		// increment timer and trigger events
@@ -339,38 +354,54 @@ void render(int numMatrixFrames, int numAudioFrames, float *audioIn, float *audi
 
 		#if SLAVE
 			if(!(n%2))	{
+
 				if(gIsPlaying)	{
+
+					float clockValue = gClockInputBuffer[(gClockInputReadPointer-numMatrixFrames+(n/2)+CLOCK_BUFFER_SIZE)%CLOCK_BUFFER_SIZE];
+
 					if(++gClockInputReadPointer >= CLOCK_BUFFER_SIZE)
 						gClockInputReadPointer = 0;
-					float clockValue = gClockInputBuffer[(gClockInputReadPointer-numMatrixFrames+(n/2)+CLOCK_BUFFER_SIZE)%CLOCK_BUFFER_SIZE];
-					float beatToPlayNext = (beatClockvalue[(gCurrentIndexInPattern+1)%4]);//==0)?1:beatClockvalue[(gCurrentIndexInPattern+1)%4];
-					float difference = clockValue - beatToPlayNext;
+
+					//float clockDifference = abs(clockValue - gLastClock);
+
+					if(clockValue >= 0.5 && !gEventTriggeredByClock)	{
+						startNextEvent();
+						gEventTriggeredByClock = 1;
+					}
+					if(clockValue >= 0.6 && gEventTriggeredByClock)
+						gEventTriggeredByClock = 0;
+
+					gLastClock = clockValue;
+
+
+					//float beatToPlayNext = (beatClockvalue[(gCurrentIndexInPattern+1)%4]);//==0)?1:beatClockvalue[(gCurrentIndexInPattern+1)%4];
+					//float difference = clockValue - beatToPlayNext;
 //					if(n==0)
 //						rt_printf("%f\n",clockValue);
 					//if(n==0)
 						//rt_printf("%d %d %f\n",(gCurrentIndexInPattern+1)%4,gCurrentIndexInPattern,beatToPlayNext);
 						//rt_printf("%f %f %f\n",clock,beatToPlayNext,difference);
-					if(n==0)
-						rt_printf("%f\n",clockValue);
-					float clockDifference = abs(clockValue - gLastClock);
+//					if(n==0)
+//						rt_printf("%f\n",gClockInputBuffer[(gClockInputReadPointer-numMatrixFrames+(n/2)+CLOCK_BUFFER_SIZE)%CLOCK_BUFFER_SIZE]);
+					//float clockDifference = abs(clockValue - gLastClock);
 
+					/*
 					float lastCurrentIndexInPattern = gCurrentIndexInPattern;
 
 					//switch(clockValue)	{
-					if(withinRange(clockValue,0.175,0.225))
+					if(withinRange(clockValue,0.1,0.29))
 						gCurrentIndexInPattern = 3;
-					if(withinRange(clockValue,0.375,0.425))
-						gCurrentIndexInPattern = 0;
-					if(withinRange(clockValue,0.575,0.625))
-						gCurrentIndexInPattern = 1;
-					if(withinRange(clockValue,0.775,0.825))
+					if(withinRange(clockValue,0.3,0.49))
 						gCurrentIndexInPattern = 2;
+					if(withinRange(clockValue,0.5,0.69))
+						gCurrentIndexInPattern = 1;
+					if(withinRange(clockValue,0.7,0.89))
+						gCurrentIndexInPattern = 0;
 					//}
 
 					if(gCurrentIndexInPattern != lastCurrentIndexInPattern)
 						startNextEvent();
-
-
+					*/
 
 //					if(!withinRange(clockDifference,0.25,0.75))	{
 //
@@ -381,7 +412,7 @@ void render(int numMatrixFrames, int numAudioFrames, float *audioIn, float *audi
 //						}
 //
 //					}
-					gLastClock = clockValue;
+					//gLastClock = clockValue;
 
 				}
 			}
@@ -429,9 +460,11 @@ void render(int numMatrixFrames, int numAudioFrames, float *audioIn, float *audi
 	#if MASTER
 		for(int m=0;m<numMatrixFrames;m++)	{
 			// 1. Change tempo using potentiometer
-			float clockOut = (float)(gClockBuffer[(gClockReadPointer-numMatrixFrames+m+CLOCK_BUFFER_SIZE)%CLOCK_BUFFER_SIZE]) / (float)(gEventIntervalSamples * 2);
-			clockOut = map(clockOut,0,1,0.25,0.75); // was 0.1-0.8
-			matrixOut[m*8+0] = clockOut;
+			float clockOut = (float)(gClockBuffer[(gClockReadPointer-numMatrixFrames+m+CLOCK_BUFFER_SIZE)%CLOCK_BUFFER_SIZE]);// / (float)(gEventIntervalSamples * 2);
+			//clockOut = map(clockOut,0,1,0.25,0.75); // was 0.1-0.8
+//			if(m==0)
+//				rt_printf("%f\n",clockOut);
+			matrixOut[m*8+gClockOutPin] = clockOut;
 //			if(m==0)
 //				rt_printf("output %f\n",clockOut);
 			//if(m==0)
