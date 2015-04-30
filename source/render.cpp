@@ -38,8 +38,8 @@ Hv_beagleSequencer *gHeavyContext;
 #define NUM_VOICES 16
 #define NUM_SYNTHS 5
 #define CLOCK_BUFFER_SIZE 1024
-#define MASTER 1
-#define SLAVE 0
+#define MASTER 0
+#define SLAVE 1
 
 int gClockOutPin = 6;
 int gClockInPin = 5;
@@ -243,22 +243,6 @@ void render(int numMatrixFrames, int numAudioFrames, float *audioIn, float *audi
 //			gClockInputBuffer[gClockInputReadPointer] = constrain(map(clockValue,0.122894,0.974518,0,1),0,1);
 			gClockInputBuffer[gClockInputReadPointer] = constrain(map(clockValue,0.3,0.9,0,1),0,1);
 
-			// 2. in for(n...):
-			//		float beatClockvalue[4] {0,0.25,0.5,0.75};
-			//		float clock = (read from clockInputBuffer)
-
-
-			//currentBeatSlave = beatClockvalue[gCurrentIndexInPattern%4];
-			//beatToPlayNext = (beatClockvalue[(gCurrentIndexInPattern+1)%4]==0)?1:beatClockvalue[(gCurrentIndexInPattern+1)%4];
-
-
-			//		if( withinRange(clock, beatClockvalue[(gCurrentIndexInPattern+1)%4],beatClockvalue[(gCurrentIndexInPattern+2)%4]);
-			// 		if(clock >= beatClockvalue[(gCurrentIndexInPattern+1)%4]  )	{
-			//			startNextEvent();
-//				clock reading: 0.974518
-//				clock reading: 0.122894
-
-			//rt_printf("masterClock: %d\n",gMasterClock);
 		#endif
 
 		// only check accel/pot input at beginning of each block to save computation
@@ -320,26 +304,6 @@ void render(int numMatrixFrames, int numAudioFrames, float *audioIn, float *audi
 
 				gAnalogOut = fmod(gAnalogOut + 0.5,1);
 
-				//rt_printf("%f\n",gAnalogOut);
-
-//				switch(gCurrentIndexInPattern%4)	{
-//				case 0:
-//					gAnalogOut = 0.2;
-//					break;
-//				case 1:
-//					gAnalogOut = 0.4;
-//					break;
-//				case 2:
-//					gAnalogOut = 0.6;
-//					break;
-//				case 3:
-//					gAnalogOut = 0.8;
-//					break;
-//				default:
-//					break;
-//				}
-//				if(n==0)
-//					rt_printf("%f\n",analogOut);
 				gClockBuffer[gClockReadPointer] = gAnalogOut;//gMasterClock;
 
 			}
@@ -362,9 +326,7 @@ void render(int numMatrixFrames, int numAudioFrames, float *audioIn, float *audi
 					if(++gClockInputReadPointer >= CLOCK_BUFFER_SIZE)
 						gClockInputReadPointer = 0;
 
-					//float clockDifference = abs(clockValue - gLastClock);
-
-					if(clockValue >= 0.5 && !gEventTriggeredByClock)	{
+					if(withinRange(clockValue,0.5,0.55) && !gEventTriggeredByClock)	{
 						startNextEvent();
 						gEventTriggeredByClock = 1;
 					}
@@ -372,47 +334,6 @@ void render(int numMatrixFrames, int numAudioFrames, float *audioIn, float *audi
 						gEventTriggeredByClock = 0;
 
 					gLastClock = clockValue;
-
-
-					//float beatToPlayNext = (beatClockvalue[(gCurrentIndexInPattern+1)%4]);//==0)?1:beatClockvalue[(gCurrentIndexInPattern+1)%4];
-					//float difference = clockValue - beatToPlayNext;
-//					if(n==0)
-//						rt_printf("%f\n",clockValue);
-					//if(n==0)
-						//rt_printf("%d %d %f\n",(gCurrentIndexInPattern+1)%4,gCurrentIndexInPattern,beatToPlayNext);
-						//rt_printf("%f %f %f\n",clock,beatToPlayNext,difference);
-//					if(n==0)
-//						rt_printf("%f\n",gClockInputBuffer[(gClockInputReadPointer-numMatrixFrames+(n/2)+CLOCK_BUFFER_SIZE)%CLOCK_BUFFER_SIZE]);
-					//float clockDifference = abs(clockValue - gLastClock);
-
-					/*
-					float lastCurrentIndexInPattern = gCurrentIndexInPattern;
-
-					//switch(clockValue)	{
-					if(withinRange(clockValue,0.1,0.29))
-						gCurrentIndexInPattern = 3;
-					if(withinRange(clockValue,0.3,0.49))
-						gCurrentIndexInPattern = 2;
-					if(withinRange(clockValue,0.5,0.69))
-						gCurrentIndexInPattern = 1;
-					if(withinRange(clockValue,0.7,0.89))
-						gCurrentIndexInPattern = 0;
-					//}
-
-					if(gCurrentIndexInPattern != lastCurrentIndexInPattern)
-						startNextEvent();
-					*/
-
-//					if(!withinRange(clockDifference,0.25,0.75))	{
-//
-//						if( (clockValue >= beatToPlayNext) && withinRange(difference,0,0.25) )	{
-//							//rt_printf("%f\n",clock);
-//							startNextEvent();
-//							rt_printf("%d %f %f %f %f\n",gCurrentIndexInPattern,clockValue,gLastClock,difference,clockDifference);
-//						}
-//
-//					}
-					//gLastClock = clockValue;
 
 				}
 			}
