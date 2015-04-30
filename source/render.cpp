@@ -38,8 +38,8 @@ Hv_beagleSequencer *gHeavyContext;
 #define NUM_VOICES 16
 #define NUM_SYNTHS 5
 #define CLOCK_BUFFER_SIZE 1024
-#define MASTER 0
-#define SLAVE 1
+#define MASTER 1
+#define SLAVE 0
 
 int gClockOutPin = 6;
 int gClockInPin = 5;
@@ -78,6 +78,8 @@ int gCurrentIndexInPattern = 0;
  * do something if they are nonzero (resetting them when done). */
 extern int gTriggerButton1;
 extern int gTriggerButton2;
+
+int gTriggerHoldButton_last = 0;
 
 // global accelerometer variables
 float gAccelX = 0;
@@ -490,10 +492,16 @@ int playSynths(int pattern, int pIndex)	{
 /* Start playing the next event in the pattern */
 void startNextEvent() {
 	int currentEvent = 0;
-	if(gTriggerButton2 == 1){
-		if(++gCurrentIndexInPattern>=gPatternLengths[gCurrentPattern])
-			gCurrentIndexInPattern=0;
+	if(gTriggerButton2 != 1){
+		if(gTriggerHoldButton_last)	{
+			gCurrentIndexInPattern = 0;
+		} else {
+			if(++gCurrentIndexInPattern>=gPatternLengths[gCurrentPattern])
+				gCurrentIndexInPattern=0;
+		}
 	}
+
+	gTriggerHoldButton_last = gTriggerButton2;
 
 	currentEvent = gPatterns[gCurrentPattern][gCurrentIndexInPattern];
 	for(int d;d<NUMBER_OF_DRUMS;d++)	{
