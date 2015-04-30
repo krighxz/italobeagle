@@ -68,8 +68,14 @@ void *gpioLoop(void *data) {
 		if(latestValue1 == 1 && gTriggerButton1_last == 0)	{
 			gTriggerButton1 = 1;
 		}
+
+		//Button 2
 		if(latestValue2 == 1 && gTriggerButton2_last == 0)	{
 			gTriggerButton2 = 1;
+		}
+		else if (latestValue2 == 0 && gTriggerButton2_last == 1)
+		{
+			gTriggerButton2 = 0;
 		}
 
 		// set LED on/off each time event is triggered

@@ -2,7 +2,7 @@
 # Automatically-generated file. Do not edit!
 ################################################################################
 
-USER_OBJS := /home/beaglert/eclipseWorkspaces/BeagleRT_Workspace/assignment2_drums_exp/libprussdrv.a
+USER_OBJS := /home/beaglert/italobeagle/libprussdrv.a
 
 LIBS := -lrt -lvorbisenc -lFLAC -logg -lvorbis -lsndfile -lnative -lxenomai
 

@@ -490,8 +490,11 @@ int playSynths(int pattern, int pIndex)	{
 /* Start playing the next event in the pattern */
 void startNextEvent() {
 	int currentEvent = 0;
-	if(++gCurrentIndexInPattern>=gPatternLengths[gCurrentPattern])
-		gCurrentIndexInPattern=0;
+	if(gTriggerButton2 == 1){
+		if(++gCurrentIndexInPattern>=gPatternLengths[gCurrentPattern])
+			gCurrentIndexInPattern=0;
+	}
+
 	currentEvent = gPatterns[gCurrentPattern][gCurrentIndexInPattern];
 	for(int d;d<NUMBER_OF_DRUMS;d++)	{
 		if(eventContainsDrum(currentEvent,d))	{
